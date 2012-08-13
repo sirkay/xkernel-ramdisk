@@ -22,13 +22,16 @@ on fs
 
 on early-init
     export EXTERNAL_STORAGE /storage/sdcard0
-    mkdir /storage 0050 system sdcard_r
+    mkdir /storage 0050 system sdcard_r 
     mkdir /storage/sdcard0 0000 system system
     # for backwards compatibility
     symlink /storage/sdcard0 /sdcard
     symlink /storage/sdcard0 /mnt/sdcard
 
 on boot
+    mkdir /sd-ext 0000 system system
+    mount /dev/block/sda1 /sd-ext
+
     #radio fix
     mkdir /data/radio 0775 radio radio
     mkdir /data/radio/log 0775 radio radio
@@ -98,13 +101,13 @@ on boot
     class_start default
 
     #load new wl1271 modules
-    insmod /system/lib/modules/compat.ko
-    insmod /system/lib/modules/compat_firmware_class.ko
-    insmod /system/lib/modules/cfg80211.ko
-    insmod /system/lib/modules/mac80211.ko
+    insmod /modules/compat.ko
+    insmod /modules/compat_firmware_class.ko
+    insmod /modules/cfg80211.ko
+    insmod /modules/mac80211.ko
     exec /system/bin/wifiload
-    insmod /system/lib/modules/wl12xx.ko
-    insmod /system/lib/modules/wl12xx_sdio.ko
+    insmod /modules/wl12xx.ko
+    insmod /modules/wl12xx_sdio.ko
 
     # USB host support
     mkdir /dev/bus 0771 system system
