@@ -30,7 +30,7 @@ on early-init
 
 on boot
     mkdir /sd-ext 0000 system system
-    mount /dev/block/sda1 /sd-ext
+    mount /dev/block/sda1 /usb0
 
     #radio fix
     mkdir /data/radio 0775 radio radio
