@@ -33,7 +33,7 @@ loglevel 3
     export ANDROID_DATA /data
     export ASEC_MOUNTPOINT /mnt/asec
     export LOOP_MOUNTPOINT /mnt/obb
-    export USB_STORAGE /sd-ext
+    export USB_STORAGE /usb0
     export BOOTCLASSPATH /system/framework/core.jar:/system/framework/core-junit.jar:/system/framework/bouncycastle.jar:/system/framework/ext.jar:/system/framework/framework.jar:/system/framework/framework2.jar:/system/framework/android.policy.jar:/system/framework/services.jar:/system/framework/apache-xml.jar
 
 # Backward compatibility
@@ -75,6 +75,10 @@ loglevel 3
     # SD-EXT
     mkdir /sd-ext 0771 system system
     symlink /sd-ext /mnt/sd-ext
+	
+	# USB Storage
+	mkdir /sd-ext 0771 system system
+    symlink /usb0 /mnt/usb0
 
     write /proc/sys/kernel/panic_on_oops 1
     write /proc/sys/kernel/hung_task_timeout_secs 0
