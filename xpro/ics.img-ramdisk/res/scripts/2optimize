@@ -1,0 +1,180 @@
+#!/system/bin/sh
+#
+
+echo "50" > /proc/sys/vm/swappiness;
+echo "3" > /proc/sys/vm/page-cluster;
+echo "10" > /proc/sys/vm/vfs_cache_pressure; 
+echo "2000" > /proc/sys/vm/dirty_writeback_centisecs;
+echo "1000" > /proc/sys/vm/dirty_expire_centisecs; 
+echo "0" > /proc/sys/vm/laptop_mode; 
+echo "90" > /proc/sys/vm/dirty_ratio; 
+echo "85" > /proc/sys/vm/dirty_background_ratio;  
+echo "0" > /proc/sys/vm/oom_kill_allocating_task;  
+echo "8" > /proc/sys/vm/page-cluster;
+echo "10" > /proc/sys/fs/lease-break-time;
+echo "0" > /proc/sys/vm/panic_on_oom; 
+echo "64000" > /proc/sys/kernel/msgmni;
+echo "64000" > /proc/sys/kernel/msgmax;
+echo "10" > /proc/sys/fs/lease-break-time;
+
+renice -20 `pidof com.android.phone`
+renice -19 `pidof com.android.inputmethod.latin`
+renice -19 `pidof com.swype.android.inputmethod`
+renice -17 `pidof com.android.systemui`
+renice -9 `pidof com.android.settings`
+renice -9 `pidof com.android.vending`
+renice -6 `pidof com.sec.android.app.camera`
+renice -6 `pidof com.sec.android.app.fm`
+renice -6 `pidof com.google.android.apps.maps`
+renice -4 `pidof com.google.android.apps.googlevoice`
+renice -3 `pidof android.process.media`
+renice -15 `pgrep android.process.acore'
+
+#remove cache, tmp, and unused files
+rm -f /cache/*.apk
+rm -f /cache/*.tmp
+rm -f /data/dalvik-cache/*.apk
+rm -f /data/dalvik-cache/*.tmp
+
+if [ -e /data/system/userbehavior.db ]
+then
+  rm -f /data/system/userbehavior.db
+fi
+
+if [ -d /data/system/usagestats ]
+then
+  chmod 400 /data/system/usagestats
+fi
+
+if [ -d /data/system/appusagestats ]
+then
+  chmod 400 /data/system/appusagestats
+fi
+
+
+#remove main log
+if [ -e /dev/log/main ]
+then
+  rm -f /dev/log/main
+fi
+
+#battery tweaks (sleepers)
+mount -t debugfs none /sys/kernel/debug
+echo NO_NEW_FAIR_SLEEPERS > /sys/kernel/debug/sched_features;
+echo NO_NORMALIZED_SLEEPERS > /sys/kernel/debug/sched_features;
+umount /sys/kernel/debug
+
+if [ -e /proc/sys/kernel/sched_min_granularity_ns ]
+then
+	echo 200000 > /proc/sys/kernel/sched_min_granularity_ns;
+fi
+
+if [ -e /proc/sys/kernel/sched_latency_ns ]
+then
+	echo 400000 > /proc/sys/kernel/sched_latency_ns;
+fi
+
+if [ -e /proc/sys/kernel/sched_wakeup_granularity_ns ]
+then
+	echo 100000 > /proc/sys/kernel/sched_wakeup_granularity_ns;
+fi
+
+if [ -e /proc/sys/kernel/hung_task_timeout_secs ]
+then
+	echo 45 > /proc/sys/kernel/hung_task_timeout_secs;s
+#(busybox expr `cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_transition_latency` \* 750 / 1000);
+#echo $SAMPLING_RATE > /sys/devices/system/cpu/cpu0/cpufreq/ondemand/sampling_rate;
+#echo 10000 > /sys/devices/system/cpu/cpu0/cpufreq/ondemand/sampling_rate;
+echo 70 > /sys/devices/system/cpu/cpu0/cpufreq/ondemand/up_threshold;
+
+for i in \
+`busybox find /data -iname "*.db"`; 
+do \
+	/system/xbin/sqlite3 $i 'VACUUM;'; 
+	/system/xbin/sqlite3 $i 'REINDEX;'; 
+done;
+
+if [ -d "/dbdata" ]; then
+	for i in \
+	`busybox find /dbdata -iname "*.db"`; 
+	do \
+		/system/xbin/sqlite3 $i 'VACUUM;'; 
+		/system/xbin/sqlite3 $i 'REINDEX;'; 
+	done;
+fi;
+
+
+if [ -d "/datadata" ]; then
+	for i in \
+	`busybox find /datadata -iname "*.db"`; 
+	do \
+		/system/xbin/sqlite3 $i 'VACUUM;'; 
+		/system/xbin/sqlite3 $i 'REINDEX;'; 
+	done;
+fi;
+
+
+for i in \
+`busybox find /sdcard -iname "*.db"`; 
+do \
+	/system/xbin/sqlite3 $i 'VACUUM;'; 
+	/system/xbin/sqlite3 $i 'REINDEX;'; 
+done;
+
+# Kernel Tweaks
+#
+sysctl -w kernel.sched_features=15834233;
+#sysctl -w kernel.msgmni=2048;
+#sysctl -w kernel.msgmax=64000;
+#sysctl -w kernel.shmmax=268435500;
+#sysctl -w kernel.sem=500,512000,64,2048;
+#sysctl -w kernel.hung_task_timeout_secs=0;
+#sysctl -w kernel.sched_latency_ns=5000000; #600000
+#sysctl -w kernel.sched_compat_yield=1;
+#sysctl -w kernel.sched_shares_ratelimit=256000;
+#sysctl -w kernel.sched_child_runs_first=0;
+#sysctl -w kernel.threads-max=10000;
+
+sync;
+setprop cm.filesystem.ready 1;
+
+mount -o remount rw /
+mount -o remount rw /system
+
+# build.prop tweaks
+setprop dalvik.vm.execution-mode=int:jit
+setprop persist.sys.purgeable_assets=1
+setprop dalvik.vm.dexopt-flags=m=y
+setprop ro.media.enc.jpeg.quality=90
+setprop dalvik.vm.heapsize=48m
+setprop ro.telephony.call_ring.delay=0
+setprop debug.performance.tuning=1
+setprop ro.ril.disable.power.collapse=0
+setprop pm.sleep_mode=1
+setprop video.accelerate.hw=1
+setprop windowsmgr.max_events_per_sec=180
+setprop ro.ril.disable.power.collapse=1
+setprop wifi.supplicant_scan_interval=150
+setprop mot.proximity.delay=150
+setprop persist.sys.shutdown.mode=hibernate
+setprop ro.ext4fs=1
+setprop ro.config.hwfeature_wakeupkey=0
+setprop dalvik.vm.startheapsize=4
+setprop ro.kernel.android.checkjni=0
+setprop ro.ril.hsxpa=0
+setprop ro.ril.hsupa.category=6;
+setprop ro.ril.hsdpa.category=8;
+setprop ro.ril.enable.dtm=1;
+setprop ro.ril.enable.a53=1;
+setprop ro.ril.enable.3g.prefix=1;
+setprop keyguard.no_require_sim=true;
+setprop net.tcp.buffersize.default=4096,87380,256960,4096,16384,256960;
+setprop net.tcp.buffersize.wifi=4096,87380,256960,4096,16384,256960;
+setprop net.tcp.buffersize.umts=4096,87380,256960,4096,16384,256960;
+setprop net.tcp.buffersize.edge=4096,87380,256960,4096,16384,256960;
+setprop net.tcp.buffersize.gprs=4096,87380,256960,4096,16384,256960;
+setprop windowsmgr.support_rotation_270=true;
+setprop ro.mot.eri.losalert.delay=000;
+setprop ro.lge.proximity.delay=25;
+setprop ro.media.dec.jpeg.memcap=20000000;
+
